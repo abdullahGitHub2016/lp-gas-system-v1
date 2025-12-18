@@ -11,13 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('purchases', function (Blueprint $table) {
+        Schema::create('lot_price_history', function (Blueprint $table) {
             $table->integer('id', true);
             $table->integer('lot_id')->index('lot_id');
-            $table->string('invoice_no', 100)->nullable();
-            $table->string('supplier_reference')->nullable();
-            $table->integer('created_by')->nullable();
-            $table->timestamp('created_at')->nullable()->useCurrent();
+            $table->decimal('old_price', 14)->nullable();
+            $table->decimal('new_price', 14)->nullable();
+            $table->timestamp('changed_at')->nullable()->useCurrent();
+            $table->integer('changed_by')->nullable();
         });
     }
 
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('purchases');
+        Schema::dropIfExists('lot_price_history');
     }
 };
