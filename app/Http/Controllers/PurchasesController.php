@@ -58,9 +58,10 @@ class PurchasesController extends Controller
         ]);
 
         foreach ($request->items as $item) {
+            //$lot = Lot::find($item['lot_id']);
             $purchase->items()->create([
                 'lot_id' => $item['lot_id'],
-                'cylinder_size_id' => $item['cylinder_size_id'],
+                //'cylinder_size_id' => $lot->cylinder_size_id,
                 'quantity' => $item['quantity'],
                 'unit_price' => $item['unit_price'],
             ]);
@@ -86,20 +87,54 @@ class PurchasesController extends Controller
         ]);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
+    // app/Http/Controllers/PurchasesController.php
+
+    public function edit($id)
     {
-        //
+        // Eager load the supplier and items with their lots
+        $purchase = Purchase::with(['supplier', 'items.lot'])->findOrFail($id);
+        $suppliers = Supplier::all();
+        $lots = Lot::all();
+
+        return Inertia::render('Purchases/Edit', [
+            'purchase' => $purchase,
+            'suppliers' => $suppliers,
+            'lots' => $lots,
+        ]);
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
+    public function update(Request $request, $id)
     {
-        //
+        $purchase = Purchase::findOrFail($id);
+
+        // 1. Validate
+        $validated = $request->validate([
+            'supplier_id' => 'required|exists:suppliers,id',
+            'purchase_date' => 'required|date',
+            'items' => 'required|array|min:1',
+            'items.*.lot_id' => 'required|exists:lots,id',
+            'items.*.quantity' => 'required|numeric|min:1',
+            'items.*.unit_price' => 'required|numeric|min:0',
+        ]);
+
+        // 2. Update the main purchase
+        $purchase->update([
+            'supplier_id' => $request->supplier_id,
+            'purchase_date' => $request->purchase_date,
+            'total_amount' => collect($request->items)->sum(fn($item) => $item['quantity'] * $item['unit_price']),
+        ]);
+
+        // 3. Update Items (Simplest way: Delete old items and recreate)
+        $purchase->items()->delete();
+        foreach ($request->items as $item) {
+            $purchase->items()->create([
+                'lot_id' => $item['lot_id'],
+                'quantity' => $item['quantity'],
+                'unit_price' => $item['unit_price'],
+            ]);
+        }
+
+        return redirect()->route('purchases.index')->with('success', 'Purchase updated successfully');
     }
 
     /**

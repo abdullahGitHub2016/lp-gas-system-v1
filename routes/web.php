@@ -33,7 +33,8 @@ Route::resource('lots', LotsController::class);
 Route::resource('purchases', PurchasesController::class);
 Route::resource('sales', \App\Http\Controllers\SalesController::class);
 
-
+Route::get('/purchases/{id}/edit', [PurchasesController::class, 'edit'])->name('purchases.edit');
+Route::put('/purchases/{id}', [PurchasesController::class, 'update'])->name('purchases.update');
 
 
 
